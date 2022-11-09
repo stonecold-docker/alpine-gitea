@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Installing required packages"
+PKG_LIB="gitea openssh su-exec"
+PKG_DEV=""
+docker-install -r -u ${PKG_LIB} ${PKG_DEV}
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
+echo
+
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Uninstalling unnecessary packages"
+docker-install -d -c ${PKG_DEV}
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
+echo
+
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Setting basic configurations"
+chown -R gitea:www-data /etc/gitea
+chown -R gitea:www-data /var/lib/gitea
+mkdir -p /conf.d /repo /conf.d/gitea /conf.d/sshd
+touch /conf.d/gitea/app.ini
+touch /conf.d/sshd/sshd_config
+mkdir -p /var/log/gitea
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
+echo
+
+

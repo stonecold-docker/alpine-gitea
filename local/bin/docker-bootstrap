@@ -1,0 +1,47 @@
+#!/bin/sh
+
+set -e
+
+if [ -e /.init ]; then
+	exit
+fi
+
+touch /.init
+
+mkdir -p /conf.d/gitea /conf.d/sshd
+
+RUN_USER_NAME=${RUN_USER_NAME:-forumi0721}
+RUN_USER_UID=${RUN_USER_UID:-1000}
+RUN_USER_GID=${RUN_USER_GID:-100}
+
+docker-adduser -u ${RUN_USER_UID} -g ${RUN_USER_GID} -H /conf.d/home -S /sbin/nologin ${RUN_USER_NAME}
+
+GOGS_REPO=${GOGS_REPO:-/repo}
+
+docker-chown ${RUN_USER_NAME} /conf.d/home
+docker-chown ${RUN_USER_NAME} /conf.d/gitea
+docker-chown ${RUN_USER_NAME} /repo
+docker-chown ${RUN_USER_NAME} /var/lib/gitea
+docker-chown ${RUN_USER_NAME} /var/log/gitea
+docker-chown ${RUN_USER_NAME} ${GOGS_REPO}
+
+if [ ! -s /conf.d/gitea/app.ini ]; then
+	sed -e "s/^RUN_USER = .*/RUN_USER = ${RUN_USER_NAME}/g" -e "s@/var/lib/gitea@${GOGS_REPO}@g" -e "s/\(\[server\]\)/\1\nHTTP_PORT        = 3000\nSSH_PORT         = 3022/g" -e "s/^MODE = file/MODE=console/g" /etc/gitea/app.ini > /conf.d/gitea/app.ini
+
+	docker-chown ${RUN_USER_NAME} /conf.d/gitea/app.ini
+fi
+
+if [ ! -s /conf.d/sshd/sshd_config ]; then
+	sed -e "s/#Port 22/Port 3022/g" -e "s/#ListenAddress 0.0.0.0/ListenAddress 0.0.0.0/g" -e "s@^#HostKey /etc/ssh/@HostKey /conf.d/sshd/@g" /etc/ssh/sshd_config > /conf.d/sshd/sshd_config
+fi
+
+if [ ! -e /conf.d/sshd/ssh_host_rsa_key ]; then
+	ssh-keygen -q -f /conf.d/sshd/ssh_host_rsa_key -N '' -t rsa
+fi
+if [ ! -e /conf.d/sshd/ssh_host_dsa_key ]; then
+	ssh-keygen -q -f /conf.d/sshd/ssh_host_dsa_key -N '' -t dsa
+fi
+if [ ! -e /conf.d/sshd/ssh_host_ecdsa_key ]; then
+	ssh-keygen -q -f /conf.d/sshd/ssh_host_ecdsa_key -N '' -t ecdsa -b 521
+fi
+
