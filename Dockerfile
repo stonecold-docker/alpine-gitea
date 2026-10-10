@@ -1,4 +1,4 @@
-FROM forumi0721/alpine-base:x64
+FROM forumi0721/alpine-base:latest
 
 LABEL maintainer="forumi0721@gmail.com"
 
